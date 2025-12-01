@@ -6,6 +6,7 @@ import ChatRoom from "./components/ChatRoom";
 import CalendarView from "./components/CalendarView";
 import MeetingSummary from "./components/MeetingSummary";
 import ScheduleModal from "./components/ScheduleModal";
+import SettingsPage from "./components/setting";
 
 export type View =
   | "auth"
@@ -13,7 +14,8 @@ export type View =
   | "teams"
   | "chat"
   | "calendar"
-  | "summary";
+  | "summary"
+  | "settings";
 
 export default function App() {
   const [currentView, setCurrentView] = useState<View>("auth");
@@ -59,6 +61,7 @@ export default function App() {
       {currentView === "summary" && (
         <MeetingSummary onBack={() => handleNavigate("dashboard")} />
       )}
+      {currentView === "settings" && <SettingsPage />}
 
       <ScheduleModal
         isOpen={isScheduleModalOpen}
