@@ -33,6 +33,12 @@ public class AuthService {
 
     // 회원가입
     public SignupResponse signup(SignupRequest req) {
+        String verified = (String) redisTemplate.opsForValue().get("verify:" + req.getEmail());
+        Boolean verify = Boolean.valueOf(verified);
+        if (verify == null || !verify) {
+            throw new RuntimeException("이메일 인증이 완료되지 않았습니다.");
+        }
+
         if (userRepository.existsByEmail(req.getEmail())) {
             throw new RuntimeException("이미 존재하는 이메일입니다.");
         }
@@ -126,19 +132,19 @@ public class AuthService {
                 TimeUnit.MINUTES
         );
 
-        emailService.sendSimpleMessage(email, "팀싱크 회원가입 인증번호", "팀싱크 인증번호는" + code + "입니다.");
+        emailService.sendSimpleMessage(email, "팀싱크 회원가입 인증번호", "팀싱크 인증번호는 " + code + " 입니다.");
         return true;
     }
 
     // 이메일 - 인증 코드 확인
     public void verifyEmailVerificationCode(String email, String code) {
-        String key = "verification:signup" + email;
+        String key = "verification:signup:" + email;
         String savedCode = (String) redisTemplate.opsForValue().get(key);
 
         if (savedCode == null || !savedCode.equals(code)) {
             throw new RuntimeException("인증 코드가 일치하지 않습니다.");
         }
-        redisTemplate.opsForValue().set("verify:" + email, code, 30, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set("verify:" + email, "true", 30, TimeUnit.MINUTES);
     }
 
 
@@ -177,26 +183,41 @@ public class AuthService {
                 TimeUnit.MINUTES
         );
 
-        System.out.println("비밀번호 재설정 코드: " + code);
+        emailService.sendSimpleMessage(email, "팀싱크 비밀번호 재설정 인증번호", "비밀번호 재설정 인증번호는 " + code + " 입니다.");
     }
 
     // 비밀번호 - 인증 코드 검증
     public boolean verifyResetCode(String email, String code) {
         String stored = (String) redisTemplate.opsForValue().get("password:reset:" + email);
 
-        return stored != null && stored.equals(code);
+        if (stored != null && stored.equals(code)) {
+            redisTemplate.opsForValue().set("reset_verified:" + email, "true", 10, TimeUnit.MINUTES);
+            redisTemplate.delete("password:reset:" + email);
+            return true;
+        }
+        return false;
     }
 
     // 비밀번호 변경
-    public void resetPassword(String email, String password) {
+    public void changePassword(String email, String newPassword,  String confirmPassword) {
+
+        Boolean verified = Boolean.valueOf((String) redisTemplate.opsForValue().get("reset_verified:" + email));
+
+        if (verified == null || !verified) {
+            throw new RuntimeException("비밀번호 변경 권한이 만료되었거나 인증되지 않았습니다.");
+        }
+
+        if (!newPassword.equals(confirmPassword)) {
+            throw new RuntimeException("새 비밀번호와 확인 비밀번호가 일치하지 않습니다.");
+        }
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수가 없습니다."));
 
-                user.setPassword(passwordEncoder.encode(password));
+                user.setPassword(passwordEncoder.encode(newPassword));
                 userRepository.save(user);
 
                 // 코드 삭제
-                redisTemplate.delete("password:reset:" + email);
+                redisTemplate.delete("reset_verified:" + email);
     }
 }

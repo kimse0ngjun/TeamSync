@@ -64,24 +64,26 @@ public class AuthController {
         authService.verifyEmailVerificationCode(req.getEmail(), req.getCode());
     }
 
-    // 비밀번호 재설정
-    @Operation(summary = "비밀번호 재설정", description = "사용자 비밀번호를 재설정합니다.")
+    // 비밀번호 찾기
+    @Operation(summary = "비밀번호 찾기", description = "이메일을 입력하여 비밀번호 재설정 코드가 전송됩니다.")
     @PostMapping("/password/send")
     public String sendPasswordResetCode(@RequestBody EmailRequest req) {
         authService.sendResetPasswordCode(req.getEmail());
         return "비밀번호 재설정 코드가 전송되었습니다.";
     }
 
-    @Operation(summary = "비밀번호 재확인", description = "비밀번호 한번 더 확인합니다.")
+    // 비밀번호 인증 코드 확인
+    @Operation(summary = "비밀번호 인증 코드 확인", description = "비밀번호 인증 코드를 확인합니다.")
     @PostMapping("/password/verify")
     public boolean verifyPasswordResetcode(@RequestBody PasswordResetVerifyRequest req) {
         return authService.verifyResetCode(req.getEmail(), req.getCode());
     }
 
-    @Operation(summary = "비밀번호 초기화", description = "사용자 비밀번호를 초기화 시킵니다.")
-    @PostMapping("/password/reset")
-    public String resetPassword(@RequestBody PasswordResetRequest req) {
-        authService.resetPassword(req.getEmail(), req.getNewPassword());
+    // 비밀번호 재설정
+    @Operation(summary = "비밀번호 변경", description = "사용자 비밀번호를 변경합니다.")
+    @PostMapping("/password/change")
+    public String changePassword(@RequestBody PasswordResetRequest req) {
+        authService.changePassword(req.getEmail(), req.getNewPassword(), req.getConfirmPassword());
         return "비밀번호가 성공적으로 변경되었습니다.";
     }
 }
