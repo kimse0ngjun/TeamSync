@@ -15,7 +15,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class MeetingRoomParticipant {
     @Id
-    @GeneratedValue
     @UuidGenerator
     private String id;
 

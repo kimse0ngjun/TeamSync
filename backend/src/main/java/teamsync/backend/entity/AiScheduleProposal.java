@@ -1,13 +1,19 @@
 package teamsync.backend.entity;
 
 
+import com.fasterxml.jackson.databind.JsonNode;
+import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.annotations.Type;
+import org.hibernate.type.SqlTypes;
 import teamsync.backend.entity.enums.AIMessageStatus;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 
 @Entity
 @Table(name = "ai_schedule_proposals") // AI 일정 제안
@@ -26,7 +32,7 @@ public class AiScheduleProposal {
     private MeetingRoom meetingRoom;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "chatmessage")
+    @JoinColumn(name = "chat_message_id")
     private ChatMessage chatMessage;
 
     private String title;
@@ -37,10 +43,10 @@ public class AiScheduleProposal {
 
     private String location;
 
-    @Column (name = "tasks", columnDefinition = "jsonb")
-    private String task; // 할 일 목록 배열
+    @Column(columnDefinition = "jsonb")
+    @Type(JsonType.class)
+    private JsonNode tasks; // 할 일 목록 배열
 
-    @Enumerated(EnumType.STRING)
-    @ColumnDefault("PENDING")
-    private AIMessageStatus status;
+    @Builder.Default
+    private AIMessageStatus status = AIMessageStatus.PENDING;
 }

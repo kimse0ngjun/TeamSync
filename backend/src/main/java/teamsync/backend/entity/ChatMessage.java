@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-import teamsync.backend.entity.enums.MessageType;
 
 import java.time.LocalDateTime;
 
@@ -29,15 +28,7 @@ public class ChatMessage {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Enumerated(EnumType.STRING)
-    @ColumnDefault("text")
-    private MessageType type;
-
     private String content;
-
-    private String fileUrl;
-
-    private MessageType emoji;
 
     private LocalDateTime createdAt;
 }

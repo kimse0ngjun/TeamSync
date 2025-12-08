@@ -14,7 +14,6 @@ import teamsync.backend.entity.enums.UserRole;
 @AllArgsConstructor
 public class TeamMember {
     @Id
-    @GeneratedValue
     @UuidGenerator
     private String id;
 

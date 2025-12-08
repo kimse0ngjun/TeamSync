@@ -16,7 +16,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class Team {
     @Id
-    @GeneratedValue
     @UuidGenerator
     private String id;
 

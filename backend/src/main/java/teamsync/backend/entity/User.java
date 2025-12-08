@@ -18,7 +18,6 @@ import java.time.LocalDateTime;
 
 public class User {
     @Id
-    @GeneratedValue
     @UuidGenerator
     private String id;
 
