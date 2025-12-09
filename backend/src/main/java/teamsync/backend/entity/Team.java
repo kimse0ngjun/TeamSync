@@ -6,6 +6,7 @@ import org.hibernate.annotations.UuidGenerator;
 import teamsync.backend.entity.enums.EventColor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "teams")
@@ -25,6 +26,9 @@ public class Team {
 
     @Column(nullable = false)
     private String name;
+
+    @OneToMany(mappedBy = "team") // mappedBy 사용 -> 양방향 매핑을 하기 위함
+    private List<TeamMember> teamMembers;
 
     private String description;
 
