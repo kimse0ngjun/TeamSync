@@ -40,7 +40,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 path.equals("/") ||
                 path.startsWith("/ws/") ||
                 path.startsWith("/api/user/") ||
-                (path.startsWith("/api/product/") && "GET".equals(method))) { // 예시로 남겨진 Product GET
+                (path.startsWith("/api/calenderevent/") && "GET".equals(method))) {
 
             filterChain.doFilter(req, res);
             return;
