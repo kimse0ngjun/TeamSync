@@ -32,6 +32,8 @@ public class User {
 
     private String image;
 
+    private String organization; // 조직명
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserRole role = UserRole.MEMBER;

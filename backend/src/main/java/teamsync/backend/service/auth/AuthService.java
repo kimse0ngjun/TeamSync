@@ -48,6 +48,7 @@ public class AuthService {
                 .password(passwordEncoder.encode(req.getPassword()))
                 .name(req.getName())
                 .role(UserRole.MEMBER)
+                .organization(req.getOrganization())
                 .createAt(LocalDateTime.now())
                 .build();
 
@@ -57,7 +58,8 @@ public class AuthService {
                 savedUser.getId(),
                 savedUser.getName(),
                 savedUser.getEmail(),
-                savedUser.getPassword()
+                savedUser.getPassword(),
+                savedUser.getOrganization()
         );
     }
 
