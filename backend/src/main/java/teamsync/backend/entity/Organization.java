@@ -2,35 +2,38 @@ package teamsync.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.UuidGenerator;
-import teamsync.backend.entity.enums.UserRole;
+import teamsync.backend.entity.enums.OrganizationRole;
+import teamsync.backend.entity.enums.OrganizationStatus;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "organizations")
 @Getter
 @Setter
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TeamMember {
+@Builder
+public class Organization {
     @Id
     @UuidGenerator
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "team_id", nullable = false)
-    private Team team;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(nullable = false, unique = true)
+    private String title;
+
+    private String description;
+
     @Enumerated(EnumType.STRING)
-    private UserRole role;
+    private OrganizationStatus status;
 
     private LocalDateTime createdAt;
 
-    private LocalDateTime updateAt;
+    private LocalDateTime updatedAt;
 }

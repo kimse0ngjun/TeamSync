@@ -8,8 +8,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import teamsync.backend.config.JwtTokenProvider;
 import teamsync.backend.dto.user.*;
+import teamsync.backend.entity.Organization;
 import teamsync.backend.entity.User;
 import teamsync.backend.entity.enums.UserRole;
+import teamsync.backend.repository.organization.OrganizationRepository;
 import teamsync.backend.repository.user.UserRepository;
 
 import java.time.LocalDateTime;
@@ -47,8 +49,7 @@ public class AuthService {
                 .email(req.getEmail())
                 .password(passwordEncoder.encode(req.getPassword()))
                 .name(req.getName())
-                .role(UserRole.MEMBER)
-                .organization(req.getOrganization())
+                .role(UserRole.USER)
                 .createAt(LocalDateTime.now())
                 .build();
 
@@ -58,8 +59,7 @@ public class AuthService {
                 savedUser.getId(),
                 savedUser.getName(),
                 savedUser.getEmail(),
-                savedUser.getPassword(),
-                savedUser.getOrganization()
+                savedUser.getPassword()
         );
     }
 

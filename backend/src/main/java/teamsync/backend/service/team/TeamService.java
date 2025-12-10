@@ -1,20 +1,18 @@
 package teamsync.backend.service.team;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import teamsync.backend.dto.team.TeamCreateRequest;
 import teamsync.backend.dto.team.TeamResponse;
+import teamsync.backend.entity.OrganizationMember;
 import teamsync.backend.entity.Team;
-import teamsync.backend.entity.TeamMember;
 import teamsync.backend.entity.User;
-import teamsync.backend.entity.enums.UserRole;
-import teamsync.backend.repository.team.TeamMemberRepository;
+import teamsync.backend.entity.enums.OrganizationRole;
+import teamsync.backend.repository.organization.OrganizationMemberRepository;
 import teamsync.backend.repository.team.TeamRepository;
 import teamsync.backend.repository.user.UserRepository;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -26,7 +24,7 @@ import java.util.stream.Collectors;
 public class TeamService {
 
     private final TeamRepository teamRepository;
-    private final TeamMemberRepository teamMemberRepository;
+    private final OrganizationMemberRepository organizationMemberRepository;
     private final UserRepository userRepository;
     private final TeamTemplatesService teamTemplatesService;
 
@@ -46,15 +44,15 @@ public class TeamService {
 
         Team savedTeam = teamRepository.save(team);
 
-        // 팀 Owner를 TeamMember로 등록
-        TeamMember ownerMember = TeamMember.builder()
+        // 팀 Owner를 OrganizationMember로 등록
+        OrganizationMember ownerMember = OrganizationMember.builder()
                 .team(savedTeam)
                 .user(owner)
-                .role(UserRole.OWNER)
+                .role(OrganizationRole.OWNER)
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        teamMemberRepository.save(ownerMember);
+        organizationMemberRepository.save(ownerMember);
 
         // 추가 멤버 등록
         if (req.getMemberEmails() != null) {
@@ -62,13 +60,12 @@ public class TeamService {
                 addMemberByInput(savedTeam, email);
             }
         }
-
         return TeamResponse.from(savedTeam);
     }
 
     // 내가 속한 팀 목록
     public List<TeamResponse> getMyTeams(User user) {
-        return teamMemberRepository.findByUser(user)
+        return organizationMemberRepository.findByUser(user)
                 .stream()
                 .map(tm -> TeamResponse.from(tm.getTeam()))
                 .collect(Collectors.toList());
@@ -82,7 +79,7 @@ public class TeamService {
                 orElseThrow(() -> new RuntimeException("팀 ID " + teamId + " 를 찾을 수 없습니다."));
 
         if (!hasManagePermission(team, inviter)) {
-            throw new RuntimeException("멤버를 초대할 권한이 없습니다. (OWNER 또는 ADMIN 역할이여야함.");
+            throw new RuntimeException("멤버를 초대할 권한이 없습니다. (OWNER 또는 ADMIN 역할이여야함.)");
         }
 
         if (inputs != null) {
@@ -94,30 +91,29 @@ public class TeamService {
 
     // 멤버 제거
     @Transactional
-    public void removeMember(String teamId, String userIdToRemove, User requester) {
+    public void removeMembers(String teamId, String userIdToRemove, User requester) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new RuntimeException("팀을 찾을 수가 없습니다."));
 
         if (!hasManagePermission(team, requester)) {
-            throw new RuntimeException("멤버를 제거할 권한이 없습니다. (OWNER. ADMIN의 역할 권한입니다.");
         }
 
         User userToRemove = userRepository.findById(userIdToRemove)
                 .orElseThrow(() -> new RuntimeException("제거할 사용자 ID를 찾을 수가 없습니다."));
 
-        TeamMember teamMember = teamMemberRepository.findByTeamAndUser(team, userToRemove)
+        OrganizationMember teamMember = organizationMemberRepository.findByTeamAndUser(team, userToRemove)
                 .orElseThrow(() -> new RuntimeException("해당 팀의 멤버가 아닙니다."));
 
-        if (teamMember.getRole() == UserRole.OWNER) {
+        if (teamMember.getRole() == OrganizationRole.OWNER) {
             throw new RuntimeException("팀 OWNER는 제거할 수 없습니다.");
         }
 
-        teamMemberRepository.delete(teamMember);
+        organizationMemberRepository.delete(teamMember);
     }
 
     // 멤버 역할 변경
     @Transactional
-    public void changeMemberRole(String teamId, String userIdToChange, UserRole newRole, User requester) {
+    public void changeMemberRole(String teamId, String userIdToChange, OrganizationRole newRole, User requester) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new RuntimeException("팀을 찾을 수가 없습니다."));
 
@@ -128,17 +124,17 @@ public class TeamService {
         User userToChange = userRepository.findById(userIdToChange)
                 .orElseThrow(() -> new RuntimeException("역할 변경 대상 사용자 ID를 찾을 수 없습니다."));
 
-        TeamMember teamMember = teamMemberRepository.findByTeamAndUser(team, userToChange)
+        OrganizationMember organizationMember = organizationMemberRepository.findByTeamAndUser(team, userToChange)
                 .orElseThrow(() -> new RuntimeException("해딩 팀의 멤버가 아닙니다."));
 
-        if(teamMember.getRole() == UserRole.OWNER &&newRole != UserRole.OWNER)
+        if(organizationMember.getRole() == OrganizationRole.OWNER && newRole != OrganizationRole.OWNER)
 
         {
             throw new RuntimeException("Owner의 역할은 소유권 이전 API를 통해서만 변경해야 합니다.");
         }
 
-        teamMember.setRole(newRole);
-        teamMemberRepository.save(teamMember);
+        organizationMember.setRole(newRole);
+        organizationMemberRepository.save(organizationMember);
     }
 
     // 이메일로 멤버 추가
@@ -150,28 +146,38 @@ public class TeamService {
                 .orElseThrow(() -> new RuntimeException("입력된 값 " + input + " 사용자를 찾을 수 없습니다."));
 
         // 이미 가입된 멤버 확인
-        boolean exists = teamMemberRepository.findByTeamAndUser(team, user).isPresent();
+        boolean exists = organizationMemberRepository.findByTeamAndUser(team, user).isPresent();
         if (exists) return;
 
-        TeamMember member = TeamMember.builder()
+        OrganizationMember member = OrganizationMember.builder()
                 .team(team)
                 .user(user)
-                .role(UserRole.MEMBER)
+                .role(OrganizationRole.MEMBER)
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        teamMemberRepository.save(member);
+        organizationMemberRepository.save(member);
     }
 
     // 이메일 또는 이름으로 User 찾기
     private Optional<User> findUserByNameOrEmail(String input) {
 
         if(input.contains("@")) {
-            Optional<User> userEmail = userRepository.findByEmail(input);
-            if (userEmail.isPresent()) return userEmail;
+            return userRepository.findByEmail(input);
+        }
+        List<User> usersWithName = userRepository.findAllByName(input);
+
+        if (usersWithName.isEmpty()) {
+            return Optional.empty();
         }
 
-        return userRepository.findByName(input);
+        if (usersWithName.size() > 1) {
+            throw new RuntimeException(
+                    "이름 '" + input + "' 으로 여러 사용자가 검색되었습니다. 이메일로 초대해주세요."
+            );
+        }
+
+        return Optional.of(usersWithName.get(0));
     }
 
     // 멤버 관리 권한 확인 (OWNER 또는 ADMIN)
@@ -179,9 +185,9 @@ public class TeamService {
         if (team.getOwner().equals(user)) {
             return true;
         }
-        return teamMemberRepository.findByTeamAndUser(team, user)
-                .map(TeamMember::getRole)
-                .filter(role -> role == UserRole.ADMIN || role == UserRole.OWNER)
+        return organizationMemberRepository.findByTeamAndUser(team, user)
+                .map(OrganizationMember::getRole)
+                .filter(role -> role == OrganizationRole.ADMIN || role == OrganizationRole.OWNER)
                 .isPresent();
     }
 
@@ -206,14 +212,14 @@ public class TeamService {
         User newOwner = userRepository.findByEmail(newOwnerEmail)
                 .orElseThrow(() -> new RuntimeException("새 Owner 사용자를 찾을 수 없습니다."));
 
-        TeamMember newOwnerMember = teamMemberRepository.findByTeamAndUser(team, newOwner)
+        OrganizationMember newOwnerMember = organizationMemberRepository.findByTeamAndUser(team, newOwner)
                 .orElseThrow(() -> new RuntimeException("새 Owner는 팀의 기존 멤버이여야 합니다."));
 
-        TeamMember currentOwnerMember = teamMemberRepository.findByTeamAndUser(team, currentOwner)
+        OrganizationMember currentOwnerMember = organizationMemberRepository.findByTeamAndUser(team, currentOwner)
                 .orElseThrow(() -> new RuntimeException("현재 Owner의 멤버 기록에 없습니다."));
 
-        currentOwnerMember.setRole(UserRole.ADMIN);
-        newOwnerMember.setRole(UserRole.OWNER);
+        currentOwnerMember.setRole(OrganizationRole.ADMIN);
+        newOwnerMember.setRole(OrganizationRole.OWNER);
 
         team.setOwner(newOwner);
         team.setUpdatedAt(LocalDateTime.now());
