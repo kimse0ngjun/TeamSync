@@ -1,6 +1,7 @@
 package teamsync.backend.controller.team;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,15 +24,17 @@ public class TeamController {
     private final TeamService teamService;
 
     // 팀 생성
-    @Operation(summary = "팀 생성", description = "팀 이름, 설명, Color, 이메일로 추가한 멤버, 탬플릿을 제공합니다.")
-    @PostMapping
+    @Operation(summary = "팀 생성", description = "팀 이름, 설명, Color, 이메일로 추가한 멤버, 탬플릿을 제공합니다.", security = {@SecurityRequirement(name = "securityBearer")})
+    @PostMapping("/{organizationId}")
     @ResponseStatus(HttpStatus.CREATED)
-    public TeamResponse createTeam(@RequestBody TeamCreateRequest req, @AuthenticationPrincipal User currentUser) {
-        return teamService.createTeam(currentUser, req);
+    public TeamResponse createTeam(@RequestBody TeamCreateRequest req,
+                                   @PathVariable String organizationId,
+                                   @AuthenticationPrincipal User owner) {
+        return teamService.createTeam(owner, organizationId, req);
     }
 
     // 팀 조회
-    @Operation(summary = "팀 조회", description = "팀에 소속된 멤버들을 조회합니다.")
+    @Operation(summary = "팀 조회", description = "팀에 소속된 멤버들을 조회합니다.", security = {@SecurityRequirement(name = "securityBearer")})
     @GetMapping("/me")
     public List<TeamResponse> getMyTeams(
            @AuthenticationPrincipal User user) {
@@ -39,8 +42,8 @@ public class TeamController {
     }
 
     // 팀 초대
-    @Operation(summary = "팀 초대", description = "조직 팀원을 이름 또는 이메일로 초대합니다.")
-    @PostMapping("/{teamid}/members")
+    @Operation(summary = "팀 초대", description = "조직 팀원을 이름 또는 이메일로 초대합니다.", security = {@SecurityRequirement(name = "securityBearer")})
+    @PostMapping("/{teamId}/members")
     public void addMembers(
             @PathVariable String teamId,
             @RequestBody List<String> inputs,
@@ -50,8 +53,8 @@ public class TeamController {
     }
 
     // 멤버 삭제
-    @Operation(summary = "멤버 삭제", description = "조직 팀원을 삭제합니다.")
-    @DeleteMapping("/{teamid}/members/{userid}")
+    @Operation(summary = "멤버 삭제", description = "조직 팀원을 삭제합니다.", security = {@SecurityRequirement(name = "securityBearer")})
+    @DeleteMapping("/{teamId}/members/{userid}")
     public void removeMembers(
             @PathVariable String teamId,
             @PathVariable String userId,
@@ -60,8 +63,8 @@ public class TeamController {
     }
 
     // 멤버 역할 변경
-    @Operation(summary = "멤버 역할 변경", description = "Owner, Admin의 권한으로 Member 역할을 변경합니다.")
-    @PatchMapping("/{teamId}/members/{userid}/role")
+    @Operation(summary = "멤버 역할 변경", description = "Owner, Admin의 권한으로 Member 역할을 변경합니다.", security = {@SecurityRequirement(name = "securityBearer")})
+    @PatchMapping("/{teamId}/members/{userId}/role")
     public void changeMemberRole(
             @PathVariable String teamId,
             @PathVariable String userId,
@@ -72,8 +75,8 @@ public class TeamController {
     }
 
     // OWNER 전용 - 팀 삭제
-    @Operation(summary = "Owner 전용 - 팀 삭제", description = "Owner 역할 담당자가 팀을 삭제합니다.")
-    @DeleteMapping("/{teamid}")
+    @Operation(summary = "Owner 전용 - 팀 삭제", description = "Owner 역할 담당자가 팀을 삭제합니다.", security = {@SecurityRequirement(name = "securityBearer")})
+    @DeleteMapping("/{teamId}")
     public void deleteTeam(
             @PathVariable String teamId,
             @AuthenticationPrincipal User requester) {
@@ -81,8 +84,8 @@ public class TeamController {
     }
 
     // OWNER 전용 - 팀 소유권 넘기기
-    @Operation(summary = "Owner 전용 - 팀 소유권 이전", description = "Owner 역할 담당자가 팀 소유권 넘길 수 있습니다.b")
-    @PatchMapping("/{teamid}/transfer")
+    @Operation(summary = "Owner 전용 - 팀 소유권 이전", description = "Owner 역할 담당자가 팀 소유권 넘길 수 있습니다.", security = {@SecurityRequirement(name = "securityBearer")})
+    @PatchMapping("/{teamId}/transfer")
     public void transferOwnership(
             @PathVariable String teamId,
             @RequestParam String newOwnerEmail,

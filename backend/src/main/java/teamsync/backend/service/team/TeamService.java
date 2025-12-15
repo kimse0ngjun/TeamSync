@@ -5,11 +5,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import teamsync.backend.dto.team.TeamCreateRequest;
 import teamsync.backend.dto.team.TeamResponse;
+import teamsync.backend.entity.Organization;
 import teamsync.backend.entity.OrganizationMember;
 import teamsync.backend.entity.Team;
 import teamsync.backend.entity.User;
 import teamsync.backend.entity.enums.OrganizationRole;
 import teamsync.backend.repository.organization.OrganizationMemberRepository;
+import teamsync.backend.repository.organization.OrganizationRepository;
 import teamsync.backend.repository.team.TeamRepository;
 import teamsync.backend.repository.user.UserRepository;
 
@@ -26,14 +28,20 @@ public class TeamService {
     private final TeamRepository teamRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
     private final UserRepository userRepository;
+    private final OrganizationRepository organizationRepository;
     private final TeamTemplatesService teamTemplatesService;
 
     // 팀 생성
-    public TeamResponse createTeam(User owner, TeamCreateRequest req) {
+    @Transactional
+    public TeamResponse createTeam(User owner, String organizationId, TeamCreateRequest req) {
+
+        Organization organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new RuntimeException("Organization ID " + organizationId + " 찾을 수 없습니다."));
 
         teamTemplatesService.applyTemplates(req);
 
         Team team = Team.builder()
+                .organization(organization)
                 .owner(owner)
                 .name(req.getName())
                 .description(req.getDescription())
@@ -46,6 +54,7 @@ public class TeamService {
 
         // 팀 Owner를 OrganizationMember로 등록
         OrganizationMember ownerMember = OrganizationMember.builder()
+                .organization(organization)
                 .team(savedTeam)
                 .user(owner)
                 .role(OrganizationRole.OWNER)
@@ -57,7 +66,7 @@ public class TeamService {
         // 추가 멤버 등록
         if (req.getMemberEmails() != null) {
             for (String email : req.getMemberEmails()) {
-                addMemberByInput(savedTeam, email);
+                addMemberByInput(savedTeam, email, organization);
             }
         }
         return TeamResponse.from(savedTeam);
@@ -82,9 +91,11 @@ public class TeamService {
             throw new RuntimeException("멤버를 초대할 권한이 없습니다. (OWNER 또는 ADMIN 역할이여야함.)");
         }
 
+        Organization organization = team.getOrganization();
+
         if (inputs != null) {
             for (String input : inputs) {
-                addMemberByInput(team, input);
+                addMemberByInput(team, input, organization);
             }
         }
     }
@@ -138,7 +149,7 @@ public class TeamService {
     }
 
     // 이메일로 멤버 추가
-    private void addMemberByInput(Team team, String input) {
+    private void addMemberByInput(Team team, String input, Organization organization) {
 
         if (input == null || input.isEmpty()) return;
 
@@ -150,6 +161,7 @@ public class TeamService {
         if (exists) return;
 
         OrganizationMember member = OrganizationMember.builder()
+                .organization(organization)
                 .team(team)
                 .user(user)
                 .role(OrganizationRole.MEMBER)

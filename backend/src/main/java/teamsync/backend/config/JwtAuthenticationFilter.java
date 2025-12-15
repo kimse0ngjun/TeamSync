@@ -1,6 +1,5 @@
 package teamsync.backend.config;
 
-
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,12 +9,12 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.security.core.userdetails.User;
+import teamsync.backend.entity.User;
+import teamsync.backend.repository.user.UserRepository;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -26,9 +25,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final UserRepository userRepository;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain)
+            throws ServletException, IOException {
 
         String path = req.getRequestURI();
         String method = req.getMethod();
@@ -50,39 +51,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (token != null && jwtTokenProvider.validateToken(token)) {
 
-            // 블랙리스트 체크 (로그아웃 처리된 AccessToken)
-            String isBlacklisted = (String) redisTemplate.opsForValue().get("blacklist:" + token);
-            if (isBlacklisted != null) {
+            // 블랙리스트 토큰인지 확인
+            if (redisTemplate.opsForValue().get("blacklist:" + token) != null) {
                 filterChain.doFilter(req, res);
                 return;
             }
 
             String userId = jwtTokenProvider.getUserId(token);
-            String email = jwtTokenProvider.getEmail(token);
 
-            UserDetails userDetails = createUserDetailsFromToken(userId, email);
+            User domainUser = userRepository.findById(userId).orElse(null);
 
-            UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                    userDetails, null, userDetails.getAuthorities());
+            if (domainUser != null) {
+                UsernamePasswordAuthenticationToken auth =
+                        new UsernamePasswordAuthenticationToken(
+                                domainUser,
+                                null,
+                                Collections.singletonList(new SimpleGrantedAuthority(domainUser.getRole().name()))
+                        );
 
-            auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
-            SecurityContextHolder.getContext().setAuthentication(auth);
+                auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
+
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            }
         }
 
         filterChain.doFilter(req, res);
     }
 
-    // UserDetails 객체 생성
-    private UserDetails createUserDetailsFromToken(String userId, String email) {
-
-        return new User(
-                email,
-                "",
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
-        );
-    }
-
-    // Authorization 헤더에서 토큰 추출
     private String resolveToken(HttpServletRequest req) {
         String bearer = req.getHeader("Authorization");
 

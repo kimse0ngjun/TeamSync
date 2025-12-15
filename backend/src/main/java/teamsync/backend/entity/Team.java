@@ -28,6 +28,10 @@ public class Team {
     @Column(nullable = false)
     private String name;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id", nullable = false)
+    private Organization organization;
+
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true) // mappedBy 사용 -> 양방향 매핑을 하기 위함
     private List<OrganizationMember> teamMembers = new ArrayList<>();
 

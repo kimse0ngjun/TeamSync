@@ -3,10 +3,8 @@ package teamsync.backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.UuidGenerator;
-import teamsync.backend.entity.enums.OrganizationRole;
 import teamsync.backend.entity.enums.OrganizationStatus;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
