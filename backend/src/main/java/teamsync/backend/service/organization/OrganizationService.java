@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import teamsync.backend.dto.organization.OrganizationCreateRequest;
 import teamsync.backend.dto.organization.OrganizationResponse;
+import teamsync.backend.dto.organization.OrganizationUpdateRequest;
 import teamsync.backend.entity.Organization;
 import teamsync.backend.entity.OrganizationMember;
 import teamsync.backend.entity.Team;
@@ -17,6 +18,7 @@ import teamsync.backend.repository.team.TeamRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -75,4 +77,47 @@ public class OrganizationService {
                 .map(OrganizationResponse::from)
                 .collect(Collectors.toList());
     }
+
+    // 조직 수정
+    @Transactional
+    public OrganizationResponse updateOrganization(
+            String organizationId,
+            User user,
+            OrganizationUpdateRequest req
+    ) {
+        Organization organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new RuntimeException("Organization ID를 찾을 수 없습니다."));
+
+        OrganizationMember member = organizationMemberRepository
+                .findByOrganizationAndUser(organization, user)
+                .orElseThrow(() -> new RuntimeException("조직 멤버로 검증되지 않았습니다."));
+
+        if (member.getRole() != OrganizationRole.OWNER) {
+            throw new RuntimeException("조직 수정 권한이 없습니다. (OWNER만 가능)");
+        }
+
+        organization.setTitle(req.getTitle());
+        organization.setDescription(req.getDescription());
+        organization.setUpdatedAt(LocalDateTime.now());
+
+        Organization changedOrganization = organizationRepository.save(organization);
+
+        return OrganizationResponse.from(changedOrganization);
+    }
+
+    // 조직 삭제
+    @Transactional
+    public void removeOrganization(String organizationId, User user) {
+
+        Organization organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new RuntimeException("Organization ID가 없습니다."));
+
+        OrganizationMember member = organizationMemberRepository.findByOrganizationAndUser(organization, user)
+                .orElseThrow(() -> new RuntimeException("조직 멤버가 아닙니다."));
+
+        if (member.getRole() != OrganizationRole.OWNER) {
+            throw new RuntimeException("조직 삭제 권한이 없습니다. (OWNER만 가능)");
+        }
+    }
+
 }

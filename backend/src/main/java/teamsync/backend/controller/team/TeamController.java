@@ -54,7 +54,7 @@ public class TeamController {
 
     // 멤버 삭제
     @Operation(summary = "멤버 삭제", description = "조직 팀원을 삭제합니다.", security = {@SecurityRequirement(name = "securityBearer")})
-    @DeleteMapping("/{teamId}/members/{userid}")
+    @DeleteMapping("/{teamId}/members/{userId}")
     public void removeMembers(
             @PathVariable String teamId,
             @PathVariable String userId,
@@ -76,7 +76,7 @@ public class TeamController {
 
     // OWNER 전용 - 팀 삭제
     @Operation(summary = "Owner 전용 - 팀 삭제", description = "Owner 역할 담당자가 팀을 삭제합니다.", security = {@SecurityRequirement(name = "securityBearer")})
-    @DeleteMapping("/{teamId}")
+    @DeleteMapping("/{teamId}/owner")
     public void deleteTeam(
             @PathVariable String teamId,
             @AuthenticationPrincipal User requester) {
@@ -85,7 +85,7 @@ public class TeamController {
 
     // OWNER 전용 - 팀 소유권 넘기기
     @Operation(summary = "Owner 전용 - 팀 소유권 이전", description = "Owner 역할 담당자가 팀 소유권 넘길 수 있습니다.", security = {@SecurityRequirement(name = "securityBearer")})
-    @PatchMapping("/{teamId}/transfer")
+    @PatchMapping("/{teamId}/owner/transfer")
     public void transferOwnership(
             @PathVariable String teamId,
             @RequestParam String newOwnerEmail,

@@ -1,6 +1,7 @@
 package teamsync.backend.repository.organization;
 
 import org.springframework.data.repository.CrudRepository;
+import teamsync.backend.entity.Organization;
 import teamsync.backend.entity.Team;
 import teamsync.backend.entity.OrganizationMember;
 import teamsync.backend.entity.User;
@@ -17,4 +18,6 @@ public interface OrganizationMemberRepository extends CrudRepository<Organizatio
     void deleteAllByTeam(Team team);
 
     Optional<OrganizationMember> findByTeamAndUser(Team team, User user);
+
+    Optional<OrganizationMember> findByOrganizationAndUser(Organization organization, User user);
 }

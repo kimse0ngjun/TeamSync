@@ -9,6 +9,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import teamsync.backend.dto.organization.OrganizationCreateRequest;
 import teamsync.backend.dto.organization.OrganizationResponse;
+import teamsync.backend.dto.organization.OrganizationUpdateRequest;
 import teamsync.backend.entity.Organization;
 import teamsync.backend.entity.OrganizationMember;
 import teamsync.backend.entity.User;
@@ -37,5 +38,21 @@ public class OrganizationController {
     @GetMapping("/me")
     public List<OrganizationResponse> getMyOrganizations(@AuthenticationPrincipal User user) {
         return organizationService.getMyOrganizations(user);
+    }
+
+    // 조직 수정
+    @Operation(summary = "조직 수정", description = "조직을 수정합니다.", security = {@SecurityRequirement(name = "securityBearer")})
+    @PutMapping("{organizationId}/update")
+    public OrganizationResponse updateOrganization(@AuthenticationPrincipal User user,
+                                                   @PathVariable String organizationId,
+                                                   @RequestBody OrganizationUpdateRequest req) {
+        return organizationService.updateOrganization(organizationId, user, req);
+    }
+
+    // 조직 삭제
+    @Operation(summary = "조직 삭제", description = "조직을 삭제합니다.", security = {@SecurityRequirement(name = "securityBearer")})
+    @DeleteMapping("/{organizationId}")
+    public void removeOrganization(@PathVariable String organizationId, @AuthenticationPrincipal User user) {
+        organizationService.removeOrganization(organizationId, user);
     }
 }
